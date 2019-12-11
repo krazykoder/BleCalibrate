@@ -544,6 +544,7 @@ namespace BleCalibrate
             public string name { get; set; }
             public string BID { get; set; }
             public bool isRegistered { get; set; }
+            public int pingCount { get; set; }
             public double lastSignal { get; set; }
             public double highSignal { get; set; }
             public double medianSignal { get; set; }
@@ -617,6 +618,7 @@ namespace BleCalibrate
                 GmeanSignal = desp.Result.GeometricMean;
                 HmeanSignal = desp.Result.HarmonicMean;
 
+                pingCount = data.Count; // update total count 
             }
 
         public void detectPeaks(int lag = 30, double threshold = 5.0, double influence = 0.0)
@@ -716,7 +718,7 @@ namespace BleCalibrate
                 if (name.ToLower().Contains(filterString)) ; else return; 
 
 
-            Console.WriteLine("BID:" + BID + " Name: " + name + " rssi:" + rssi);
+            //Console.WriteLine("BID:" + BID + " Name: " + name + " rssi:" + rssi); // debug
 
             BID = BID.Replace(":", "");
 
@@ -868,7 +870,7 @@ namespace BleCalibrate
                 if (name.ToLower().Contains(filterString)) ; else return;
    
 
-            Console.WriteLine("BID:" + BID + " Name: " + name + " rssi:" + rssi);
+            //Console.WriteLine("BID:" + BID + " Name: " + name + " rssi:" + rssi);
 
             BID = BID.Replace(":", "");
             beacon b;
@@ -1260,7 +1262,7 @@ namespace BleCalibrate
 
             json = JsonConvert.SerializeObject(loc);
             //Console.WriteLine("Count: " + array.Length);
-            Console.WriteLine(json);
+            //Console.WriteLine(json); // DEBUG only 
 
             this.Dispatcher.Invoke(() =>
             {
@@ -1841,7 +1843,7 @@ namespace BleCalibrate
             // example JSON ref: http://winappsweb/fouptrack/getTrackData.aspx?param=BID
             public string FoupName { get; set; }
             public string FoupBID { get; set; }
-            public bool isRegistered = true; 
+            public bool isRegistered = false; 
 
 
         }
@@ -1988,7 +1990,7 @@ namespace BleCalibrate
             {
                 dict[item.FoupBID] = item;
             }
-            savedFoupList = dict.Values.ToList();
+            FoupList = savedFoupList = dict.Values.ToList();
 
 
             //savedFoupList = FoupList.Concat(savedFoupList).ToList<Foupdata>(); 
@@ -2002,9 +2004,13 @@ namespace BleCalibrate
 
                 System.IO.File.WriteAllText(@path + "localDB", json);
                 Console.Write("Sync:");
+                MessageBox.Show("Saved to localdb. Total entries:" + savedFoupList.Count); 
                 
             }
-            catch (Exception ex) { }
+            catch (Exception ex) {
+                MessageBox.Show("Error Saving localdb.");
+
+            }
 
         }
     }

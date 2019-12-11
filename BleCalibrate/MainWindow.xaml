@@ -103,7 +103,7 @@
 
                 </Grid>
             </TabItem>
-            <TabItem Header="Analysis" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Width="54">
+            <TabItem Header="Analysis" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Width="54" IsEnabled="False">
 
                 <Grid>
                     <Grid.RowDefinitions>
@@ -151,7 +151,7 @@
                 </Grid>
 
             </TabItem>
-            <TabItem Header="Data">
+            <TabItem Header="Data" IsEnabled="False">
                 <Grid Margin="0,7,-1,-7">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="149*"/>
@@ -211,7 +211,7 @@
                     <CheckBox x:Name="serverResponseCheckbox" Content="Server Response" HorizontalAlignment="Left" Margin="670,110,0,0" VerticalAlignment="Top" Grid.Column="1"/>
                 </Grid>
             </TabItem>
-            <TabItem Header="Console" HorizontalAlignment="Left" Height="20" VerticalAlignment="Bottom" Width="54" Margin="-2,0,0,0">
+            <TabItem Header="Console" HorizontalAlignment="Left" Height="20" VerticalAlignment="Bottom" Width="54" Margin="-2,0,0,0" IsEnabled="False">
                 <Grid Background="#FFE5E5E5">
                     <RichTextBox x:Name="dataconsole" HorizontalAlignment="Left" Height="498" Margin="10,10,0,0" VerticalAlignment="Top" Width="1063" FontSize="8" Block.LineHeight="6">
                         <FlowDocument>
@@ -224,6 +224,7 @@
             </TabItem>
         </TabControl>
         <Button x:Name="button_downloadDatabase" Content="Download Database" HorizontalAlignment="Left" Margin="347,-64,0,0" VerticalAlignment="Top" Width="129" Height="20" Click="button_downloadDatabase_Click" Grid.ColumnSpan="2" Grid.Column="3"/>
+        <Label x:Name="label5_Copy4" Content="Report bugs:  towshif.ali@kla-tencor.com" HorizontalAlignment="Left" Margin="191,-78,-23,0" VerticalAlignment="Top" Height="29" Grid.Column="4" Grid.ColumnSpan="2" Width="223" FontStyle="Italic"/>
 
     </Grid>
 </Window>

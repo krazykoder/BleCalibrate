@@ -68,6 +68,10 @@ namespace BleCalibrate
             switch (ID)
             {
                 default:
+
+                case "console":
+                    dataconsole.AppendText(text+"\n");
+                    break; 
                 case "log":
                     if ((bool)checkBox1.IsChecked)
                     {
@@ -493,6 +497,8 @@ namespace BleCalibrate
 
                     // create / update char data for all incoming signal
                     if (acquire) updateChart(macAddress, localName, manufacturerDataString, rssi, timedelta);
+                    if (register) updateChart2(macAddress, localName, manufacturerDataString, rssi, timedelta);
+
 
                     // create json data for post
                     createJSON(location, macAddress, sensorID, rssi);
@@ -514,8 +520,8 @@ namespace BleCalibrate
                 this.Dispatcher.Invoke(() => { Log(ex.ToString(), "error"); Log(DateTime.Now + ex.ToString(), "logfile"); });
 
                 // Post Exception to Database
-                db = new DBConnect();
-                db.PostException("[" + DateTime.Now + "] ERROR: " + ex.ToString(), "FoupBLETracker" + sensorID + " v." + version, "MainWindow");
+                //db = new DBConnect();
+                //db.PostException("[" + DateTime.Now + "] ERROR: " + ex.ToString(), "FoupBLETracker" + sensorID + " v." + version, "MainWindow");
                 // END Post Exception to Database
             }
         }
@@ -525,18 +531,35 @@ namespace BleCalibrate
         private DateTime curtime;
         private double chartTimeScale = 20;
 
+        
+
         #region The Beacon Class
 
         private Dictionary<string, beacon> Beacons { get; set; }
+        
+
 
         private class beacon : LiveCharts.Wpf.LineSeries
         {
             public string name { get; set; }
             public string BID { get; set; }
+            public bool isRegistered { get; set; }
+            public double lastSignal { get; set; }
+            public double highSignal { get; set; }
+            public double medianSignal { get; set; }
+            public double lowSignal { get; set; }
+            public double meanSignal { get; set; }
+            public double stdSignal { get; set; }
+            public double GmeanSignal { get; set; }
+            public double HmeanSignal { get; set; }
+
+            public string FID { get; set; }
             public string manufacturerDataString { get; set; }
 
-            public Dictionary<int, double> data;
+            private int sample = 20; 
 
+            public Dictionary<int, int> data;
+            public List<Double> simpledata;
             public Dictionary<int, ObservablePoint> analysisData1;
 
             //public new string Title { get; set; }
@@ -545,8 +568,10 @@ namespace BleCalibrate
             public beacon()
             {
                 this.Values = new ChartValues<ObservablePoint>();
-                this.data = new Dictionary<int, double>();
+                this.data = new Dictionary<int, int>();
+                this.simpledata = new List<double>();
                 this.analysisData1 = new Dictionary<int, ObservablePoint>();
+                this.isRegistered = false; 
             }
 
 
@@ -559,7 +584,9 @@ namespace BleCalibrate
             public void addSignal(short signal, double time)
             {
                 //if (Values.Count == 20) Values.RemoveAt(0); 
+                this.lastSignal = signal;
 
+                this.simpledata.Add((Double)signal);
                 this.Values.Add(new ObservablePoint(time, Convert.ToDouble(signal)));
                 if (data.ContainsKey(signal))
                 {
@@ -573,14 +600,31 @@ namespace BleCalibrate
                     SimpleChartData.Add(analysisData1[signal]);
                 }
 
+                // calculate stats on data dict 
+                //meanSignal = simpledata.Average();
+                //double sumOfSquaresOfDifferences = simpledata.Select(val => (val - meanSignal) * (val - meanSignal)).Sum();
+                //stdSignal = Math.Sqrt(sumOfSquaresOfDifferences / simpledata.Count);
+
+                if (simpledata.Count > 3) ; else return; 
+
+                Descriptive desp = new Descriptive(simpledata.ToArray());
+                desp.Analyze();
+                meanSignal = desp.Result.Mean;
+                stdSignal = desp.Result.StdDev;
+                medianSignal = desp.Result.Median;
+                highSignal = desp.Result.ThirdQuartile;
+                lowSignal = desp.Result.FirstQuartile;
+                GmeanSignal = desp.Result.GeometricMean;
+                HmeanSignal = desp.Result.HarmonicMean;
+
             }
 
-            public void detectPeaks(int lag = 30, double threshold = 5.0, double influence = 0.0)
+        public void detectPeaks(int lag = 30, double threshold = 5.0, double influence = 0.0)
             {
                 SignatureChartData = new ChartValues<ObservablePoint>();
                 SignalChartData = new ChartValues<ObservablePoint>();
 
-                List<double> input = data.Values.ToList();
+                List<double> input = data.Values.Select<int, double>(i => i).ToList();
 
                 ZScore_Peak_Finder Z = new ZScore_Peak_Finder();
 
@@ -666,6 +710,13 @@ namespace BleCalibrate
 
         private void updateChart(string BID, string name, string manufacturerDataString, short rssi, double time)
         {
+            // testing only 
+            string filterString = filterName_textbbox.Text.Trim().ToLower(); 
+            if (filterString.Length != 0)
+                if (name.ToLower().Contains(filterString)) ; else return; 
+
+
+            Console.WriteLine("BID:" + BID + " Name: " + name + " rssi:" + rssi);
 
             BID = BID.Replace(":", "");
 
@@ -683,7 +734,7 @@ namespace BleCalibrate
 
 
             beacon b;
-            if (name.Length == 0) name = BID;
+            if (name.Length == 0) name = BID; // if no Title info came with broadcast 
 
             //ComboBoxItem sel = (ComboBoxItem)Dropdown_selectBID.SelectedItem;
             //if (sel.Content == BID)
@@ -697,7 +748,8 @@ namespace BleCalibrate
             {
                 b = Beacons[BID];
                 //b.addSignal(rssi, time);
-                b.name = name;
+                /*if (b.name.Length ==0 )  */
+                //b.name = name;
                 b.Title = BID;
                 if (rssi != -127) b.addSignal(rssi, time);
             }
@@ -718,8 +770,8 @@ namespace BleCalibrate
                     b.addSignal(rssi, time);
                     // add to dropdown UI 
                     ComboBoxItem cb = new ComboBoxItem();
-                    cb.Tag = BID;
-                    cb.Content = name;
+                    cb.Tag = BID; // replace with name 
+                    cb.Content = name + "-" + BID;
                     // update UI 
                     Dropdown_selectBID.Items.Add(cb);
                 }
@@ -805,6 +857,158 @@ namespace BleCalibrate
                 ay.SetRange(min - 10, max + 10);
             }
         }
+
+        
+
+        private void updateChart2(string BID, string name, string manufacturerDataString, short rssi, double time)
+        {
+            // testing only 
+            string filterString = filterName_register_textbbox.Text.Trim().ToLower();
+            if (filterString.Length != 0)
+                if (name.ToLower().Contains(filterString)) ; else return;
+   
+
+            Console.WriteLine("BID:" + BID + " Name: " + name + " rssi:" + rssi);
+
+            BID = BID.Replace(":", "");
+            beacon b;
+
+            if (name.Length == 0) name = BID; // if no Title info came with broadcast 
+
+            //ComboBoxItem sel = (ComboBoxItem)Dropdown_selectBID.SelectedItem;
+            //if (sel.Content == BID)
+            //    ;
+            //else if (Dropdown_selectBID.SelectedIndex == 0 && checkBox_data_collect.IsChecked == true)
+            //    ;
+            //else
+            //    return; 
+
+            if (Beacons.ContainsKey(BID))
+            {
+                b = Beacons[BID];
+                //b.addSignal(rssi, time);
+                /*if (b.name.Length ==0 )  */
+                //b.name = name;
+                b.Title = BID;
+                if (rssi != -127) b.addSignal(rssi, time);
+            }
+
+            else
+            {
+                b = new beacon();
+
+                Beacons.Add(BID, b);
+
+                b.DataLabels = true;
+                b.Title = BID;
+                b.name = name;
+                b.BID = BID;
+                b.manufacturerDataString = manufacturerDataString;
+                if (rssi != -127)
+                {
+                    b.addSignal(rssi, time);
+                    // add to dropdown UI 
+                    ComboBoxItem cb = new ComboBoxItem();
+                    cb.Tag = BID; // replace with name 
+                    cb.Content = name + "-" + BID;
+                    // update UI 
+                    Dropdown_register_selectBID.Items.Add(cb);
+                }
+            }
+
+
+            // update series and UI
+            if (Beacons.Count > myRegisterChart.Series.Count)
+            {
+                foreach (KeyValuePair<string, beacon> item in Beacons)
+                {
+                    if (!myRegisterChart.Series.Contains(item.Value))
+                    {
+
+                        myRegisterChart.Series.Add(item.Value);
+
+                        // output final dict array
+                        //dataconsole.AppendText("\n ID = " + item.Key);
+                        //foreach (var p in myChart.Series)
+                        //dataconsole.AppendText("[" + p.Values + "] ");
+
+
+
+                        // check if visibility enabled in combobox
+                        if (Dropdown_register_selectBID.SelectedIndex == 0)
+                            item.Value.Visibility = Visibility.Visible;
+
+                        else
+                            item.Value.Visibility = Visibility.Hidden;
+                    }
+                    //if (item.Value.isRegistered) item.Value.IsSeriesVisible = false;
+                    //else item.Value.Visibility = Visibility.Visible;
+                }
+
+                //DataContext = this;
+            }
+
+            // update UI and visibility 
+            foreach (KeyValuePair<string, beacon> item in Beacons)
+            {
+                if (item.Value.isRegistered) item.Value.Visibility = Visibility.Hidden;
+                else item.Value.Visibility = Visibility.Visible;
+            }
+
+
+            // adjust scales for line charts 
+            double timescale = (curtime - reftime).TotalSeconds;
+
+            int min = 0, max = -127;
+
+            // cleanup data older than XX secs ( 20 sec) 
+            foreach (KeyValuePair<string, beacon> item in Beacons)
+            {
+                foreach (ObservablePoint p in item.Value.Values)
+                {
+                    //cleanup list ''
+                    if ((timescale - p.X) > chartTimeScale)
+                    {
+                        item.Value.Values.Remove(p);
+                    }
+
+                    else
+                    {
+                        if (min > p.Y) min = (int)p.Y;
+                        if (p.Y > max) max = (int)p.Y;
+                    }
+
+                    // print entire list 
+                    //dataconsole.AppendText("[" + p.X + "," + p.Y + "] ");
+                }
+            }
+
+
+
+            foreach (ComboBoxItem it in Dropdown_selectBID.Items)
+            {
+                it.Background = Brushes.White;
+                foreach (KeyValuePair<string, beacon> item in Beacons)
+                {
+                    if (it.Tag == item.Key && item.Value.Values.Count > 2)
+                        it.Background = Brushes.Green;
+
+                }
+            }
+
+
+            if (myRegisterChart.AxisX != null && myRegisterChart.AxisY != null && timescale > chartTimeScale)
+            {
+
+                // reset X Range
+                LiveCharts.Wpf.Axis ax = myRegisterChart.AxisX[0]; ax.MinValue = timescale - chartTimeScale;
+                // reset Y Range
+                LiveCharts.Wpf.Axis ay = myRegisterChart.AxisY[0];
+                ay.SetRange(min - 30, max + 30);
+            }
+        }
+
+
 
 
         private async void OnAdvertisementWatcherStopped(BluetoothLEAdvertisementWatcher watcher, BluetoothLEAdvertisementWatcherStoppedEventArgs eventArgs)
@@ -1491,10 +1695,48 @@ namespace BleCalibrate
             }
         }
 
+        private void Dropdown_registerBID_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+           ComboBoxItem cb = (ComboBoxItem)Dropdown_register_selectBID.SelectedItem;
+            if (Beacons != null)
+            {
+                //dataconsole.AppendText("Selections: " + Dropdown_selectBID.SelectedValue.ToString() + "\n");
+                dataconsole.AppendText("Selections: " + cb.Tag + "\n");
+
+                foreach (KeyValuePair<string, beacon> item in Beacons)
+                {
+                    dataconsole.AppendText("[" + item.Key + "=>" + item.Value.BID + "] ");
+                    if (Dropdown_register_selectBID.SelectedIndex == 0)
+                        item.Value.Visibility = Visibility.Visible;
+
+                    else if (item.Key == cb.Tag)
+                    {
+                        item.Value.Visibility = Visibility.Visible;
+
+                        // add function for analysis chart 
+                        S.Values = item.Value.SimpleChartData;
+                        S.Title = item.Key;
+
+                    }
+                    else
+                        item.Value.Visibility = Visibility.Hidden;
+                }
+
+                if (analysisA.Series.Count > 0) analysisA.Series.Clear();
+                analysisA.Series.Add(S);
+                //analysisA.Series.Add(signal_peaks);
+                analysisA.Update(); ///.UpdateLayout();
+
+                //myChart.Update(restartView:true);
+                myChart.UpdateLayout();
+            }
+        }
+
+
         SignalArray S = new SignalArray();
 
-
         private bool acquire = false;
+        private bool register = false;
         private void Button_ResetChart_Click(object sender, RoutedEventArgs e)
         {
             if (acquire)
@@ -1502,7 +1744,38 @@ namespace BleCalibrate
             else
                 this.Button_Pause.Content = "Pause";
             acquire = !acquire;
+        }
 
+        private void Button_Register_ResetChart_Click(object sender, RoutedEventArgs e)
+        {
+            if (register)
+                this.Button_Register_Pause.Content = "Play";
+            else
+                this.Button_Register_Pause.Content = "Pause";
+            register = !register;
+
+            // read local database for fouplist 
+            string path = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\";
+            try
+            {
+                System.IO.StreamReader file = new System.IO.StreamReader(path + "localDB");
+                Console.Write("Location:");
+                string line = file.ReadToEnd();
+                //Console.WriteLine(line);
+                // assign location to the vars
+                line = line.Trim();
+                file.Close();
+                FoupList = JsonConvert.DeserializeObject<List<Foupdata>>(line);
+                //MessageBox.Show("Success: " + line);
+                Button_Register_updateState.IsEnabled = true; 
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Coud not read localdb. IO Error");
+            }
+
+            mydataGrid.ItemsSource = Beacons.Values.ToList<beacon>();
 
         }
 
@@ -1514,6 +1787,7 @@ namespace BleCalibrate
         }
 
         private Dictionary<string, string> BIDList = new Dictionary<string, string>();
+        private List <Foupdata> FoupList; 
         private void button_downloadDatabase_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -1539,20 +1813,22 @@ namespace BleCalibrate
                 //dataconsole.AppendText(result.ToString());
 
                 // deserialize data 
-                List<Foupdata> o = JsonConvert.DeserializeObject<List<Foupdata>>(result);
+                //List<Foupdata> o = JsonConvert.DeserializeObject<List<Foupdata>>(result);
+                FoupList = JsonConvert.DeserializeObject<List<Foupdata>>(result);
 
 
                 // populate local database Object 
-                foreach (var p in o)
+                foreach (var p in FoupList)
                 {
                     BIDList.Add(p.FoupBID, p.FoupName);
                     dataconsole.AppendText(p.FoupBID + ",");
+                    Log(p.FoupBID + ' ' + p.FoupName + ' ' + p.isRegistered, "console");
                 }
 
                 // UI checkbx enable 
                 checkBox_database.IsEnabled = true;
                 checkBox_database.IsChecked = true;
-
+                Button_Register_updateState.IsEnabled = true; 
             }
             catch (Exception ex)
             {
@@ -1565,6 +1841,8 @@ namespace BleCalibrate
             // example JSON ref: http://winappsweb/fouptrack/getTrackData.aspx?param=BID
             public string FoupName { get; set; }
             public string FoupBID { get; set; }
+            public bool isRegistered = true; 
+
 
         }
 
@@ -1602,5 +1880,132 @@ namespace BleCalibrate
             }
         }
 
+        private void Button_Register_UpdateList_Click(object sender, RoutedEventArgs e)
+        {
+            // update foup names 
+            try
+            {
+                foreach (var o in FoupList)
+                {
+                    if (Beacons.ContainsKey(o.FoupBID))
+                    {
+                        Beacons[o.FoupBID].name = o.FoupName;
+                        //if (Beacons[o.FoupBID].isRegistered)
+                        //    o.isRegistered = Beacons[o.FoupBID].isRegistered; // do the reverse ; update the original database list 
+                        //else
+                        //Beacons[o.FoupBID].isRegistered = o.isRegistered; // do this manually
+                    }
+                }
+            } catch (Exception ex) { Log("Foup List not initialized", "console"); }
+
+            mydataGrid.ItemsSource = Beacons.Values.ToList<beacon>();
+        }
+
+        private void Button_Register_UpdateState_Click(object sender, RoutedEventArgs e)
+        {
+            // NOT DONE YET 
+            //string line = "";
+            //int counter = 0;
+            //string path = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\";
+            //try
+            //{
+            //    System.IO.StreamReader file = new System.IO.StreamReader(path + "sync");
+            //    Console.Write("Sync:");
+            //    line = file.ReadLine();
+            //    Console.WriteLine(line);
+            //    // assign location to the vars
+            //    location = line.Trim();
+            //    file.Close();
+            //}
+            //catch (Exception ex) { }
+
+            // update foup names and last state 
+            try
+            {
+                foreach (var o in FoupList)
+                {
+                    if (Beacons.ContainsKey(o.FoupBID))
+                    {
+                        Beacons[o.FoupBID].name = o.FoupName;
+                        Beacons[o.FoupBID].isRegistered = o.isRegistered; // do this manually
+                                                                          //o.isRegistered = Beacons[o.FoupBID].isRegistered; // do the reverse ; update the original database list 
+                    }
+                }
+            }
+            catch (Exception ex) {  }
+
+            Button_Register_UpdateList_Click(sender, e);
+
+        }
+
+        private void register_checkAll(object sender, RoutedEventArgs e)
+        {
+            foreach (var o in Beacons)
+            {
+                o.Value.isRegistered = true; 
+            }
+
+            foreach (var item in FoupList)
+            {
+                item.isRegistered = true; 
+            }
+            mydataGrid.ItemsSource = Beacons.Values.ToList<beacon>();
+
+        }
+
+        private void register_SaveUpdateState(object sender, RoutedEventArgs e)
+        {
+
+            // Update FoupList with new names and registration values 
+            List<Foupdata> savedFoupList = new List<Foupdata>(); 
+
+
+            foreach (var x in Beacons)
+            {
+                savedFoupList.Add(new Foupdata {
+                    FoupBID = x.Value.BID,
+                    FoupName = x.Value.name,
+                    isRegistered = x.Value.isRegistered
+                });
+
+                //if (Beacons.ContainsKey(x.FoupBID))
+                //{
+                //    // do nothing 
+                //}
+                //else
+                //{
+                //    savedFoupList.Add(x); 
+                //}
+                //var itemToChange = ListA.FirstOrDefault(d => d.Name == x.Name);
+                //if (itemToChange != null)
+                //    itemToChange.Age = x.Age;
+            }
+
+            // now merge with foup list 
+
+            var dict = FoupList.ToDictionary(p => p.FoupBID);
+            foreach (var item in savedFoupList)
+            {
+                dict[item.FoupBID] = item;
+            }
+            savedFoupList = dict.Values.ToList();
+
+
+            //savedFoupList = FoupList.Concat(savedFoupList).ToList<Foupdata>(); 
+
+            // Save the Foupist 
+            string path = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\";
+            try
+            {
+                // serialize list 
+                string json = JsonConvert.SerializeObject(savedFoupList); 
+
+                System.IO.File.WriteAllText(@path + "localDB", json);
+                Console.Write("Sync:");
+                
+            }
+            catch (Exception ex) { }
+
+        }
     }
 }

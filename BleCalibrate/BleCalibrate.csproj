@@ -121,6 +121,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
     <Compile Include="retutn.cs" />
+    <Compile Include="StatDescriptive.cs" />
     <Compile Include="ZScore_Peak_Finder.cs" />
   </ItemGroup>
   <ItemGroup>

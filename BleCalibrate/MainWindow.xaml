@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:BleCalibrate"
         xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
         mc:Ignorable="d"
-        Title="BLE Diagnostics" Height="692.667" Width="1168.825" ResizeMode="NoResize" SnapsToDevicePixels="True">
+        Title="BLE Diagnostics" Height="692.667" Width="1222.825" ResizeMode="NoResize" SnapsToDevicePixels="True">
     <Grid Height="563" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="1075" Margin="0,0,35,18">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="27*"/>
@@ -16,12 +16,37 @@
             <ColumnDefinition Width="316*"/>
             <ColumnDefinition Width="75*"/>
         </Grid.ColumnDefinitions>
-        <TabControl x:Name="tabControl" HorizontalAlignment="Left" Height="636" Margin="-21,-61,-14,-12" VerticalAlignment="Top" Width="1110" Grid.ColumnSpan="6">
-            <TabItem Header="Live Chart" Background="{x:Null}">
+        <TabControl x:Name="tabControl" HorizontalAlignment="Left" Height="612" Margin="-83,-49,-23,0" VerticalAlignment="Top" Width="1181" Grid.ColumnSpan="6">
+            <TabItem Header="Finder" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Width="54">
+                <Grid Background="White">
+                    <lvc:CartesianChart x:Name="myRegisterChart" LegendLocation="Bottom" Margin="0,69,694,0">
+                        <lvc:CartesianChart.AxisY>
+                            <lvc:Axis Title="Signal (dB)" LabelFormatter="{Binding YFormatter}"/>
+                        </lvc:CartesianChart.AxisY>
+                        <lvc:CartesianChart.AxisX>
+                            <lvc:Axis Title="time (secs)" Labels="{Binding Labels}" />
+                        </lvc:CartesianChart.AxisX>
+                    </lvc:CartesianChart>
+                    <Button x:Name="Button_Register_Pause" Content="Play" HorizontalAlignment="Left" Margin="109,10,0,0" VerticalAlignment="Top" Width="85" Click="Button_Register_ResetChart_Click" Height="22"/>
+                    <ComboBox x:Name="Dropdown_register_selectBID" HorizontalAlignment="Left" Margin="215,10,0,0" VerticalAlignment="Top" Width="160" IsReadOnly="True" SelectedIndex="0" SelectionChanged="Dropdown_registerBID_SelectionChanged" Height="22">
+                        <ComboBoxItem Content="All" HorizontalAlignment="Left" Width="157"/>
+                    </ComboBox>
+                    <Button x:Name="button_Reset_Copy" Content="Reset" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="74" Click="Button_Reset_Click" Height="22"/>
+                    <TextBox x:Name="filterName_register_textbbox" HorizontalAlignment="Left" Height="17" Margin="273,39,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="102" RenderTransformOrigin="1.194,0.913" Text="tile"/>
+                    <Label x:Name="label5_Copy2" Content="Filter name" HorizontalAlignment="Left" Margin="199,35,0,0" VerticalAlignment="Top" Height="29"/>
+                    <DataGrid x:Name="mydataGrid" HorizontalAlignment="Left" Margin="486,39,0,-1" VerticalAlignment="Top" Height="546" Width="679" Background="#FFFFFDFD"/>
+                    <Label x:Name="label5_Copy3" Content="Tile Beacons" HorizontalAlignment="Left" Margin="596,10,0,0" VerticalAlignment="Top" Height="29" RenderTransformOrigin="1.187,0.414"/>
+                    <Button x:Name="Button_Register_updatelist" Content="Update" HorizontalAlignment="Left" Margin="679,10,0,0" VerticalAlignment="Top" Width="85" Click="Button_Register_UpdateList_Click" Height="22"/>
+                    <Button x:Name="Button_Register_updateState" Content="Update Last State" HorizontalAlignment="Left" Margin="811,10,0,0" VerticalAlignment="Top" Width="119" Click="Button_Register_UpdateState_Click" Height="22" IsEnabled="False"/>
+                    <Button x:Name="Button_Register_hideall" Content="Hide All" HorizontalAlignment="Left" Margin="953,10,0,0" VerticalAlignment="Top" Width="85" Click="register_checkAll" Height="22"/>
+                    <Button x:Name="Button_Register_hideall_Copy" Content="Save State" HorizontalAlignment="Left" Margin="1066,10,0,0" VerticalAlignment="Top" Width="84" Click="register_SaveUpdateState" Height="22"/>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Live Chart">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" MinHeight="97"></RowDefinition>
-                        <RowDefinition Height="143*"></RowDefinition>
+                        <RowDefinition Height="Auto" MinHeight="97"/>
+                        <RowDefinition Height="143*"/>
                         <RowDefinition Height="368*"/>
                     </Grid.RowDefinitions>
                     <lvc:CartesianChart x:Name="myChart" Grid.Row="2" LegendLocation="Bottom" Margin="0,5,10,0">
@@ -32,7 +57,7 @@
                             <lvc:Axis Title="time (secs)" Labels="{Binding Labels}" />
                         </lvc:CartesianChart.AxisX>
                     </lvc:CartesianChart>
-                    <lvc:CartesianChart x:Name="analysisA" Margin="643,10,238,0" Grid.Row="1" >
+                    <lvc:CartesianChart x:Name="analysisA" Margin="624,0,266,0" Grid.Row="1" >
                         <lvc:CartesianChart.AxisY>
                             <lvc:Axis Title="Freq" LabelFormatter="{Binding YFormatter}"/>
                         </lvc:CartesianChart.AxisY>
@@ -41,7 +66,7 @@
                         </lvc:CartesianChart.AxisX>
                     </lvc:CartesianChart>
 
-                    <lvc:CartesianChart x:Name="analysisB" Margin="871,10,10,0" Grid.Row="1">
+                    <lvc:CartesianChart x:Name="analysisB" Margin="914,0,10,0" Grid.Row="1">
                         <lvc:CartesianChart.AxisY>
                             <lvc:Axis Title="Freq" LabelFormatter="{Binding YFormatter}"/>
                         </lvc:CartesianChart.AxisY>
@@ -61,11 +86,10 @@
                     <Label x:Name="label3" Content="Acquisition time" HorizontalAlignment="Left" Margin="10,48,0,0" Grid.Row="1" VerticalAlignment="Top" Height="26" Width="96"/>
                     <CheckBox x:Name="checkBox_data_collect" Content="Collect All" HorizontalAlignment="Left" Margin="770,12,0,0" VerticalAlignment="Top" Height="15" Width="73"/>
                     <CheckBox x:Name="checkBox3" Content="CheckBox" HorizontalAlignment="Left" Margin="20,21,0,0" VerticalAlignment="Top" Grid.Row="1" Height="15" Width="72"/>
-                    <CheckBox x:Name="checkBox_database" Content="Database only" HorizontalAlignment="Left" Margin="448,35,0,0" VerticalAlignment="Top" Height="15" Width="94" IsEnabled="False"/>
+                    <CheckBox x:Name="checkBox_database" Content="Database only" HorizontalAlignment="Left" Margin="624,36,0,0" VerticalAlignment="Top" Height="15" Width="94" IsEnabled="False"/>
                     <Label x:Name="label2" Content="Label" HorizontalAlignment="Left" Margin="113,15,0,0" Grid.Row="1" VerticalAlignment="Top" Height="26" Width="38" RenderTransformOrigin="12.263,0.192"/>
                     <Label x:Name="label_bleinfo" Content="Info: " HorizontalAlignment="Left" Margin="342,8,0,0" Grid.Row="1" VerticalAlignment="Top" Width="266" Height="99"/>
-                    <Button x:Name="button_downloadDatabase" Content="Download" HorizontalAlignment="Left" Margin="624,9,0,0" VerticalAlignment="Top" Width="129" Height="20" Click="button_downloadDatabase_Click"/>
-                    <Button x:Name="button_Reset" Content="Reset" HorizontalAlignment="Left" Margin="243,8,0,0" VerticalAlignment="Top" Width="74" Click="Button_Reset_Click" Height="19"/>
+                    <Button x:Name="button_Reset" Content="Reset" HorizontalAlignment="Left" Margin="243,8,0,0" VerticalAlignment="Top" Width="74" Click="Button_Reset_Click" Height="22"/>
                     <TextBox x:Name="textBox_threshold" HorizontalAlignment="Left" Height="18" Margin="997,29,0,0" TextWrapping="Wrap" Text="5" VerticalAlignment="Top" Width="36"/>
                     <TextBox x:Name="textBox_influence" HorizontalAlignment="Left" Height="17" Margin="997,47,0,0" TextWrapping="Wrap" Text="0" VerticalAlignment="Top" Width="36" RenderTransformOrigin="1.194,0.913"/>
                     <TextBox x:Name="textBox_lag" HorizontalAlignment="Left" Height="17" Margin="997,12,0,0" TextWrapping="Wrap" Text="10" VerticalAlignment="Top" Width="36"/>
@@ -73,6 +97,9 @@
                     <Label x:Name="label4" Content="Lag" HorizontalAlignment="Left" Margin="1033,6,0,0" VerticalAlignment="Top" Height="29" Width="35"/>
                     <Label x:Name="label5" Content="Threshold" HorizontalAlignment="Left" Margin="1033,24,0,0" VerticalAlignment="Top"/>
                     <Label x:Name="label6" Content="Influence" HorizontalAlignment="Left" Margin="1033,42,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="filterName_textbbox" HorizontalAlignment="Left" Height="17" Margin="506,37,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="102" RenderTransformOrigin="1.194,0.913"/>
+                    <Label x:Name="label5_Copy" Content="Threshold" HorizontalAlignment="Left" Margin="1033,24,0,0" VerticalAlignment="Top"/>
+                    <Label x:Name="label5_Copy1" Content="Filter name" HorizontalAlignment="Left" Margin="432,33,0,0" VerticalAlignment="Top" Height="29"/>
 
                 </Grid>
             </TabItem>
@@ -80,8 +107,8 @@
 
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"></RowDefinition>
-                        <RowDefinition Height="310*"></RowDefinition>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="310*"/>
                         <RowDefinition Height="237*"/>
                     </Grid.RowDefinitions>
 
@@ -140,7 +167,15 @@
                                 <Run Text=" "/>
                                 <Run Text=" "/>
                                 <Run Text=" "/>
+                                <Run Text=" "/>
+                                <Run Text=" "/>
+                                <Run Text=" "/>
+                                <Run Text=" "/>
                                 <Run Text="devices"/>
+                                <Run Text=" "/>
+                                <Run Text=" "/>
+                                <Run Text=" "/>
+                                <Run Text=" "/>
                                 <Run Text=" "/>
                                 <Run Text=" "/>
                                 <Run Text=" "/>
@@ -176,7 +211,7 @@
                     <CheckBox x:Name="serverResponseCheckbox" Content="Server Response" HorizontalAlignment="Left" Margin="670,110,0,0" VerticalAlignment="Top" Grid.Column="1"/>
                 </Grid>
             </TabItem>
-            <TabItem Header="Console" HorizontalAlignment="Left" Height="20" VerticalAlignment="Bottom" Width="54" Margin="-2,-2,0,2">
+            <TabItem Header="Console" HorizontalAlignment="Left" Height="20" VerticalAlignment="Bottom" Width="54" Margin="-2,0,0,0">
                 <Grid Background="#FFE5E5E5">
                     <RichTextBox x:Name="dataconsole" HorizontalAlignment="Left" Height="498" Margin="10,10,0,0" VerticalAlignment="Top" Width="1063" FontSize="8" Block.LineHeight="6">
                         <FlowDocument>
@@ -188,6 +223,7 @@
                 </Grid>
             </TabItem>
         </TabControl>
+        <Button x:Name="button_downloadDatabase" Content="Download Database" HorizontalAlignment="Left" Margin="347,-64,0,0" VerticalAlignment="Top" Width="129" Height="20" Click="button_downloadDatabase_Click" Grid.ColumnSpan="2" Grid.Column="3"/>
 
     </Grid>
 </Window>
